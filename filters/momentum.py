@@ -1,20 +1,14 @@
 import pandas as pd
 
-def screener(df, threshold=2.0):
+def momentum_screener(df, threshold=0.5):
     """
     Filter stocks based on momentum.
-    
-    Parameters:
-    df (DataFrame): DataFrame containing stock data with 'Ticker' and 'Momentum' columns.
-    threshold (float): Minimum momentum value to filter stocks.
-    
-    Returns:
-    DataFrame: Filtered DataFrame with stocks that have momentum greater than the threshold.
+    Price momentum is stock price change over a period of time by threshhold%.
     """
-    # Ensure the 'Momentum' column is numeric
-    df['Momentum'] = pd.to_numeric(df['Momentum'], errors='coerce')
-    
-    # Filter stocks based on momentum
-    filtered_stocks = df[df['Momentum'] > threshold]
-    
-    return filtered_stocks[['Ticker', 'Name', 'Momentum']]
+    if df.empty:
+        return False
+    # price at the start is the first row of close and end is the last row of close
+    start_price = df['Close'].iloc[0]
+    end_price = df['Close'].iloc[-1]
+    price_change = abs((end_price - start_price) / start_price * 100)
+    return price_change > threshold
