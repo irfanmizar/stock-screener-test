@@ -1,6 +1,6 @@
 import pandas as pd
 
-def momentum_screener(df, threshold=0.5):
+def momentum_screener(df, momentum_threshold):
     """
     Filter stocks based on momentum.
     Price momentum is stock price change over a period of time by threshhold%.
@@ -11,4 +11,4 @@ def momentum_screener(df, threshold=0.5):
     start_price = df['Close'].iloc[0]
     end_price = df['Close'].iloc[-1]
     price_change = abs((end_price - start_price) / start_price * 100)
-    return price_change > threshold
+    return price_change > momentum_threshold
