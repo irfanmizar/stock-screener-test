@@ -1,9 +1,7 @@
 import yfinance as yf
 import pandas as pd
-# from filters.momentum import momentum_screener
-# from filters.volume_spike import volume_spike_screener
 
-def price_change_percentage(df, start, end):
+def price_change_percentage(df):
     """
     Calculate the price change between the start and end of the period.
     """
@@ -12,14 +10,45 @@ def price_change_percentage(df, start, end):
     end_price = df["Close"].iloc[-1]
     return ((end_price - start_price) / start_price) * 100
 
-def average_volume(df, start, end):
+def average_volume(ticker, start):
     """
     Calculate the average volume between the start and end of the period.
     1. Get the daily volume for each trading day in the past N days
     2. Compute the arithmetic mean of the daily volumes
     """
-    avg_volume = df["Volume"].mean()
+    current_ticker = yf.Ticker(ticker)
+    last_N_days = current_ticker.history(
+        period="5d",
+        end=start,
+        interval="1d"
+    )
+    avg_volume = last_N_days["Volume"].mean()
     return avg_volume
+
+def volume(ticker, start, end):
+    """
+    Get the current volume for the ticker.
+    """
+    current_ticker = yf.Ticker(ticker)
+    per_day_volume = current_ticker.history(
+        start=start,
+        end=end,
+        interval="1d"
+    )
+    current_volume = per_day_volume["Volume"].mean()
+    # current_volume = df["Volume"].sum()
+    return current_volume
+
+def relative_volume(ticker, start, end):
+    """
+    Calculate the relative volume for the ticker.
+    1. Get the current volume
+    2. Get the average volume for the past N days
+    3. Compute the ratio of current volume to average volume
+    """
+    current_volume = volume(ticker, start, end)
+    avg_volume = average_volume(ticker, start)
+    return (current_volume / avg_volume)*100
 
 
 def stock_data(df, ticker, passed, start, end):
@@ -29,14 +58,18 @@ def stock_data(df, ticker, passed, start, end):
     # start = pd.to_datetime(start)
     # end = pd.to_datetime(end)
     print(df.tail())
-    price_change = price_change_percentage(df, start, end)
-    avg_volume = average_volume(df, start, end)
+    price_change = price_change_percentage(df)
+    avg_volume = average_volume(ticker, start)
+    current_volume = volume(ticker, start, end)
+    rel_volume = relative_volume(ticker, start, end)
     passed.append({
         "Ticker": ticker,
         "Name": yf.Ticker(ticker).info["longName"],
         "Price": round(df["Close"].iloc[-1], 2),
         "Price Change (%)": round(price_change, 2),
-        "Average Volume": int(avg_volume)
+        "Average Volume": int(avg_volume),
+        "Volume": int(current_volume),
+        "Relative Volume (%)": round(rel_volume, 2)
     })
     
 
