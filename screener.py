@@ -1,5 +1,6 @@
 import yfinance as yf
 import pandas as pd
+from millify import millify as mf
 
 def price_change_percentage(df):
     """
@@ -67,8 +68,8 @@ def stock_data(df, ticker, passed, start, end):
         "Name": yf.Ticker(ticker).info["longName"],
         "Price": round(df["Close"].iloc[-1], 2),
         "Price Change (%)": round(price_change, 2),
-        "Average Volume": int(avg_volume),
-        "Volume": int(current_volume),
+        "Average Volume": mf(int(avg_volume), precision=2),
+        "Volume": mf(int(current_volume), precision=2),
         "Relative Volume (%)": round(rel_volume, 2)
     })
     
