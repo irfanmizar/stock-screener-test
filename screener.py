@@ -11,7 +11,7 @@ def price_change_percentage(df):
     end_price = df["Close"].iloc[-1]
     return ((end_price - start_price) / start_price) * 100
 
-def average_volume(ticker, start):
+def average_volume(ticker, start, end):
     """
     Calculate the average volume between the start and end of the period.
     1. Get the daily volume for each trading day in the past N days
@@ -19,7 +19,7 @@ def average_volume(ticker, start):
     """
     current_ticker = yf.Ticker(ticker)
     last_N_days = current_ticker.history(
-        period="5d",
+        start=end-pd.Timedelta(days=5),  # Adjust the number of days as needed
         end=start,
         interval="1d"
     )
@@ -40,19 +40,31 @@ def volume(ticker, start, end):
     # current_volume = df["Volume"].sum()
     return current_volume
 
-def relative_volume(ticker, start, end):
+def volume_intraday(ticker, start, end):
+    """
+    Get the current volume for the ticker.
+    """
+    current_ticker = yf.Ticker(ticker)
+    per_day_volume = current_ticker.history(
+        start=start,
+        end=end,
+        interval="1m"
+    )
+    current_volume = per_day_volume["Volume"].sum()
+    return current_volume
+
+def relative_volume(current_volume, ticker, start, end):
     """
     Calculate the relative volume for the ticker.
     1. Get the current volume
     2. Get the average volume for the past N days
     3. Compute the ratio of current volume to average volume
     """
-    current_volume = volume(ticker, start, end)
-    avg_volume = average_volume(ticker, start)
+    avg_volume = average_volume(ticker, start, end)
     return (current_volume / avg_volume)*100
 
 
-def stock_data(df, ticker, passed, start, end):
+def stock_data(df, ticker, passed, start, end, interval):
     """
     Fetch the corresponding data for the ticker in the given period.
     """
@@ -60,9 +72,14 @@ def stock_data(df, ticker, passed, start, end):
     # end = pd.to_datetime(end)
     print(df.tail())
     price_change = price_change_percentage(df)
-    avg_volume = average_volume(ticker, start)
-    current_volume = volume(ticker, start, end)
-    rel_volume = relative_volume(ticker, start, end)
+    avg_volume = average_volume(ticker, start, end)
+
+    if (interval == "1m" or interval == "5m" or interval == "15m"):
+        current_volume = volume_intraday(ticker, start, end)
+    else:
+        current_volume = volume(ticker, start, end)
+
+    rel_volume = relative_volume(current_volume, ticker, start, end)
     passed.append({
         "Ticker": ticker,
         "Name": yf.Ticker(ticker).info["longName"],
@@ -91,7 +108,7 @@ def run_screener(tickers, interval, prepost, start, end):
         if df.empty:
             print(f"Ticker {symbol} has no data.")
             continue
-        stock_data(df, yf_sym, passed, start, end)
+        stock_data(df, yf_sym, passed, start, end, interval)
 
     return pd.DataFrame(passed)
 
