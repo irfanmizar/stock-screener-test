@@ -2,49 +2,63 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 from screener import run_screener
-from datetime import date, timedelta
+from datetime import date, timedelta, time
 
 # date limits
 today = date.today()
 st.title("Stock Screener Prototype")
 
-# period = st.selectbox("Period", ["1d", "2d", "5d"], index=0)
-start = st.date_input(
+start_date = st.date_input(
     "Start Date", 
-    value=today - timedelta(days=7),
-    min_value=today - timedelta(days=60),
-    max_value=today
-)
-
-end = st.date_input(
-    "End Date", 
     value=today,
-    min_value=start,
     max_value=today
 )
 
-lookback = (end - start).days
+end_date = st.date_input(
+    "End Date",
+    value=today,
+    min_value=start_date,
+    max_value=today
+)
 
-INTERVALS = {
-    "1m": 1,
-    "5m": 1,
-    "15m": 1,
-    "1d": 55,
-}
+market_open = time(9, 30)
+market_close = time(16, 0)
 
-valid_intervals = []
-for iv, max_days in INTERVALS.items():
-    if max_days is None or lookback <= max_days:
-        valid_intervals.append(iv)
+start_time = st.time_input(
+    "Start Time",
+    value=market_open,
+)
 
-if not valid_intervals:
-    st.error("The selected date range is too long for the available intervals.")
+end_time = st.time_input(
+    "End Time",
+    value=market_close,
+)
+
+if not (market_open <= start_time <= market_close):
+    st.error("Start Time must be between 09:30 and 16:00")
     st.stop()
 
+if not (market_open <= end_time <= market_close):
+    st.error("End Time must be between 09:30 and 16:00")
+    st.stop()
 
-interval = st.selectbox("Interval", valid_intervals, index=valid_intervals.index("1d") if "1d" in valid_intervals else 0)
-prepost = st.checkbox("Include Pre/Post Market Data", value=True)
+if start_date == end_date and end_time < start_time:
+    st.error("End Time cannot be earlier than Start Time on the same day")
+    st.stop()
 
+# Convert start and end dates to datetime
+start = pd.to_datetime(f"{start_date} {start_time}")
+end = pd.to_datetime(f"{end_date} {end_time}")
+
+num_days = (end - start).days
+if num_days <= 7:
+    interval = "1m"
+elif num_days <= 30:
+    interval = "5m"
+elif num_days <= 60:
+    interval = "15m"
+else:
+    interval = "1d"
 
 # tickers_df = pd.read_csv("stock_tickers.csv")
 # st.subheader("Available Tickers")
@@ -58,7 +72,6 @@ if st.button("Run Screener"):
     df = run_screener(
         tickers_df["Ticker"].tolist(),
         interval,
-        prepost,
         start=start,
         end=end,
     )

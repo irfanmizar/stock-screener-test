@@ -18,12 +18,12 @@ def average_volume(ticker, start, end):
     2. Compute the arithmetic mean of the daily volumes
     """
     current_ticker = yf.Ticker(ticker)
-    last_N_days = current_ticker.history(
-        start=end-pd.Timedelta(days=5),  # Adjust the number of days as needed
-        end=start,
+    volume = current_ticker.history(
+        start=start,
+        end=end,
         interval="1d"
     )
-    avg_volume = last_N_days["Volume"].mean()
+    avg_volume = volume["Volume"].mean()
     return avg_volume
 
 def volume(ticker, start, end):
@@ -31,26 +31,12 @@ def volume(ticker, start, end):
     Get the current volume for the ticker.
     """
     current_ticker = yf.Ticker(ticker)
-    per_day_volume = current_ticker.history(
+    volume = current_ticker.history(
         start=start,
         end=end,
         interval="1d"
     )
-    current_volume = per_day_volume["Volume"].mean()
-    # current_volume = df["Volume"].sum()
-    return current_volume
-
-def volume_intraday(ticker, start, end):
-    """
-    Get the current volume for the ticker.
-    """
-    current_ticker = yf.Ticker(ticker)
-    per_day_volume = current_ticker.history(
-        start=start,
-        end=end,
-        interval="1m"
-    )
-    current_volume = per_day_volume["Volume"].sum()
+    current_volume = volume["Volume"].sum()
     return current_volume
 
 def relative_volume(current_volume, ticker, start, end):
@@ -74,10 +60,10 @@ def stock_data(df, ticker, passed, start, end, interval):
     price_change = price_change_percentage(df)
     avg_volume = average_volume(ticker, start, end)
 
-    if (interval == "1m" or interval == "5m" or interval == "15m"):
-        current_volume = volume_intraday(ticker, start, end)
-    else:
-        current_volume = volume(ticker, start, end)
+    # if (interval == "1m" or interval == "5m" or interval == "15m"):
+    #     current_volume = volume_intraday(ticker, start, end)
+    # else:
+    current_volume = volume(ticker, start, end)
 
     rel_volume = relative_volume(current_volume, ticker, start, end)
     passed.append({
@@ -91,7 +77,7 @@ def stock_data(df, ticker, passed, start, end, interval):
     })
     
 
-def run_screener(tickers, interval, prepost, start, end):
+def run_screener(tickers, interval, start, end):
     """
     Run the stock screener on the given tickers.
     """
@@ -100,7 +86,6 @@ def run_screener(tickers, interval, prepost, start, end):
         yf_sym = symbol.replace(".", "-")
         df     = yf.Ticker(yf_sym).history(
                     interval=interval,
-                    prepost=prepost,
                     start=start,
                     end=end
                  )
