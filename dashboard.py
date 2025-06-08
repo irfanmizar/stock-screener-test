@@ -121,15 +121,23 @@ else:
 # tickers_df = pd.read_csv("stock_tickers.csv")
 # st.subheader("Available Tickers")
 # st.dataframe(tickers_df)
-tickers = ["MMM", "AAPL", "MSFT", "GOOGL", "NVDA", "AMD", "CFSB"]
-tickers_df = pd.DataFrame({"Ticker": tickers})
-st.subheader("Available Tickers")
-st.dataframe(tickers_df)
+# tickers = ["MMM", "AAPL", "MSFT", "GOOGL", "NVDA", "AMD", "CFSB"]
+# tickers_df = pd.DataFrame({"Ticker": tickers})
+# st.subheader("Available Tickers")
+# st.dataframe(tickers_df)
+tickers_csv = st.file_uploader("Upload a CSV file with stock tickers", type=["csv"])
+if tickers_csv is not None:
+    tickers_df = pd.read_csv(tickers_csv)
+    if "Ticker" not in tickers_df.columns:
+        st.error("CSV must contain a 'Ticker' column.")
+        st.stop()
+    tickers = tickers_df["Ticker"].astype(str).tolist()
 
+# print(tickers_df.columns)
 if st.button("Run Screener"):
     df = run_screener(
-        tickers_df["Ticker"].tolist(),
-        interval,
+        tickers=tickers,
+        interval=interval,
         start=start,
         end=end,
     )
