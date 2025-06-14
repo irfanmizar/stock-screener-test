@@ -11,70 +11,47 @@ def price_change_percentage(df):
     end_price = df["Close"].iloc[-1]
     return ((end_price - start_price) / start_price) * 100
 
-def volume(ticker, start, end, interval):
+def volume(df):
     """
     Get the current volume for the ticker.
     """
-    current_ticker = yf.Ticker(ticker)
-    volume = current_ticker.history(
-        start=start,
-        end=end,
-        interval=interval
-    )
-    current_volume = volume["Volume"].sum()
-    return current_volume
+    return df["Volume"].sum()
 
-def average_volume(ticker, start, end, interval):
+def average_volume(df, df_daily):
     """
     Calculate the average volume between the start and end of the period.
-    1. Get the daily volume for each trading day in the past N days
-    2. Compute the arithmetic mean of the daily volumes
     """
-    current_ticker = yf.Ticker(ticker)
-    volume = current_ticker.history(
-        start=start,
-        end=end,
-        interval=interval
-    )
-    total_shares = volume["Volume"].sum()
+    total_shares = df["Volume"].sum()
+
+    if total_shares == 0:
+        return 0
     
-    daily_bars = yf.Ticker(ticker).history(
-        start=start,
-        end=end,
-        interval="1d"
-    )
-    num_days = len(daily_bars)
+    num_days = df_daily.shape[0]
+
     if num_days == 0:
         return 0
+    
     avg_volume = total_shares / num_days
     return avg_volume
 
-def relative_volume(current_volume, ticker, start, end, interval):
+def relative_volume(df, df_daily, df_lookback):
     """
     Calculate the relative volume for the ticker.
     """
-    current_avg_volume = average_volume(ticker, start, end, interval)
-    current_ticker = yf.Ticker(ticker)
-    last_10_days = current_ticker.history(
-        start=start-pd.Timedelta(days=10),  # 10 days before the end
-        end=start,
-        interval="1d"
-    )
-    past_average_volume = last_10_days["Volume"].mean()
+    current_avg_volume = average_volume(df, df_daily)
+    past_average_volume = df_lookback["Volume"].mean()
     return (current_avg_volume/past_average_volume)*100
 
 
-def stock_data(df, ticker, company_name, passed, start, end, interval):
+def stock_data(df, df_daily, df_lookback, ticker, company_name, passed, start, end, interval):
     """
     Fetch the corresponding data for the ticker in the given period.
     """
     print(df.tail())
     price_change = price_change_percentage(df)
-    avg_volume = average_volume(ticker, start, end, interval)
-
-    current_volume = volume(ticker, start, end, interval)
-
-    rel_volume = relative_volume(current_volume, ticker, start, end, interval)
+    avg_volume = average_volume(df, df_daily)
+    current_volume = volume(df)
+    rel_volume = relative_volume(df, df_daily, df_lookback)
     # info = yf.Ticker(ticker).info
     passed.append({
         "Ticker": ticker,
@@ -112,18 +89,48 @@ def run_screener(tickers, interval, start, end):
             progress=False  # Disable progress bar for cleaner output
         )
 
+        df_daily = yf.download(
+            tickers=batch,
+            start=start,
+            end=end,
+            interval="1d",
+            group_by='ticker',
+            auto_adjust=True,
+            threads= True,
+            progress=False  # Disable progress bar for cleaner output
+        )
+
+        df_lookback = yf.download(
+            tickers=batch,
+            start=(start - pd.Timedelta(days=10)).strftime("%Y-%m-%d"),
+            end=start.strftime("%Y-%m-%d"),
+            interval="1d",
+            group_by='ticker',
+            auto_adjust=True,
+            threads= True,
+            progress=False  # Disable progress bar for cleaner output
+        )
+
         for sym in batch:
+            symbol = sym.replace("-", ".")
+            company_name = sym['Company'] if isinstance(sym, dict) and 'Company' in sym else sym
+            # Check if the ticker exists in the downloaded data
+            if sym not in df_batch.columns:
+                print(f"Ticker {sym} has no data.")
+                continue
             try:
                 df_sym = df_batch[sym].dropna(subset=["Close"])
+                df_dsym = df_daily[sym]
+                df_lookback_sym = df_lookback[sym]
             except KeyError:
                 print(f"Ticker {sym} has no data.")
                 continue
-            if df_sym.empty:
+            if df_sym.empty or df_dsym.empty or df_lookback_sym.empty:
                 print(f"Ticker {sym} has no data.")
                 continue
             symbol = sym.replace("-", ".")
 
-            stock_data(df_sym, symbol, symbol, passed, start, end, interval)
+            stock_data(df_sym, df_dsym, df_lookback_sym, symbol, company_name, passed, start, end, interval)
     
     return pd.DataFrame(passed)
 
