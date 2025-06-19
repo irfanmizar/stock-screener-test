@@ -3,22 +3,19 @@ import pandas as pd
 import yfinance as yf
 from screener import run_screener
 from datetime import date, timedelta, time
+from millify import millify as mf
 
 # date limits
 st.title("Stock Screener Prototype")
-col1, col2, col3, col4, col5, col6 = st.columns(6)
 today = date.today()
 
-# Start date
-with col1:
+with st.sidebar:
     start_date = st.date_input(
         "Start Date", 
         value=today,
         max_value=today
     )
 
-# End date
-with col2:
     end_date = st.date_input(
         "End Date",
         value=today,
@@ -26,67 +23,68 @@ with col2:
         max_value=today
     )
 
-date_interval = (today - start_date).days
+    date_interval = (today - start_date).days
 
-OPEN_HOUR = 9
-OPEN_MINUTE = 30
-CLOSE_HOUR = 16
-CLOSE_MINUTE = 0
+    OPEN_HOUR = 9
+    OPEN_MINUTE = 30
+    CLOSE_HOUR = 16
+    CLOSE_MINUTE = 0
 
-if date_interval > 60:
-    time_disable = True
-else:
-    time_disable = False
-
-# Start time (hour selection)
-with col3:
-    if time_disable:
-        hour_options = [OPEN_HOUR]  # default to market open if time is disabled
+    if date_interval > 60:
+        time_disable = True
     else:
-        hour_options = list(range(OPEN_HOUR, CLOSE_HOUR + 1))
-    start_hour = st.selectbox("Start Time", hour_options, index=0)
+        time_disable = False
 
-# Start time (minute selection)
-if (date_interval <= 7):
-    if (start_hour == 9):
-        start_minute_options = list(range(OPEN_MINUTE, 60))
-    else:
-        start_minute_options = list(range(0, 60))
-elif (date_interval <= 60):
-    if (start_hour == 9):
-        start_minute_options = list(range(OPEN_MINUTE, 60, 2))
-    else:
-        start_minute_options = list(range(0, 60, 2))
-else:
-    start_minute_options = OPEN_MINUTE
+    col1, col2 = st.columns(2)
+    # Start time (hour selection)
+    with col1:
+        if time_disable:
+            hour_options = [OPEN_HOUR]  # default to market open if time is disabled
+        else:
+            hour_options = list(range(OPEN_HOUR, CLOSE_HOUR + 1))
+        start_hour = st.selectbox("Start Hour", hour_options, index=0)
 
-with col4:
-    start_minute = st.selectbox(":", start_minute_options, index=0)
-
-# End time (hour selection)
-with col5:
-    if time_disable:
-        hour_options = [CLOSE_HOUR]  # default to market close if time is disabled
+    # Start time (minute selection)
+    if (date_interval <= 7):
+        if (start_hour == 9):
+            start_minute_options = list(range(OPEN_MINUTE, 60))
+        else:
+            start_minute_options = list(range(0, 60))
+    elif (date_interval <= 60):
+        if (start_hour == 9):
+            start_minute_options = list(range(OPEN_MINUTE, 60, 2))
+        else:
+            start_minute_options = list(range(0, 60, 2))
     else:
-        hour_options = list(range(OPEN_HOUR, CLOSE_HOUR + 1))
-    end_hour = st.selectbox("End Time", hour_options, index=len(hour_options) - 1)
+        start_minute_options = OPEN_MINUTE
 
-# End time (minute selection)
-if (date_interval <= 7):
-    if (end_hour == 16):
-        end_minute_options = list(range(0, CLOSE_MINUTE + 1))
-    else:
-        end_minute_options = list(range(0, 60))
-elif (date_interval <= 60):
-    if (end_hour == 16):
-        end_minute_options = list(range(0, CLOSE_MINUTE + 1, 2))
-    else:
-        end_minute_options = list(range(0, 60, 2))
-else:
-    end_minute_options = [CLOSE_MINUTE]
+    with col2:
+        start_minute = st.selectbox("Start Minute", start_minute_options, index=0)
 
-with col6:
-    end_minute = st.selectbox(":", end_minute_options, index=len(end_minute_options) - 1)
+    # End time (hour selection)
+    with col1:
+        if time_disable:
+            hour_options = [CLOSE_HOUR]  # default to market close if time is disabled
+        else:
+            hour_options = list(range(OPEN_HOUR, CLOSE_HOUR + 1))
+        end_hour = st.selectbox("End Hour", hour_options, index=len(hour_options) - 1)
+
+    # End time (minute selection)
+    if (date_interval <= 7):
+        if (end_hour == 16):
+            end_minute_options = list(range(0, CLOSE_MINUTE + 1))
+        else:
+            end_minute_options = list(range(0, 60))
+    elif (date_interval <= 60):
+        if (end_hour == 16):
+            end_minute_options = list(range(0, CLOSE_MINUTE + 1, 2))
+        else:
+            end_minute_options = list(range(0, 60, 2))
+    else:
+        end_minute_options = [CLOSE_MINUTE]
+
+    with col2:
+        end_minute = st.selectbox("End Minute", end_minute_options, index=len(end_minute_options) - 1)
 
 start_time = time(start_hour, start_minute)
 end_time = time(end_hour, end_minute)
@@ -106,8 +104,8 @@ if start_date == end_date and end_time < start_time:
     st.stop()
 
 # Convert start and end dates to datetime
-start = pd.to_datetime(f"{start_date} {start_time}")
-end = pd.to_datetime(f"{end_date} {end_time}")
+start = pd.to_datetime(f"{start_date} {start_time}", utc=True)
+end = pd.to_datetime(f"{end_date} {end_time}", utc=True)
 
 num_days = (end - start).days
 
@@ -118,13 +116,6 @@ elif num_days <= 60:
 else:
     interval = "1d"
 
-# tickers_df = pd.read_csv("stock_tickers.csv")
-# st.subheader("Available Tickers")
-# st.dataframe(tickers_df)
-# tickers = ["MMM", "AAPL", "MSFT", "GOOGL", "NVDA", "AMD", "CFSB"]
-# tickers_df = pd.DataFrame({"Ticker": tickers})
-# st.subheader("Available Tickers")
-# st.dataframe(tickers_df)
 tickers_csv = st.file_uploader("Upload a CSV file with stock tickers", type=["csv"])
 if tickers_csv is not None:
     tickers_df = pd.read_csv(tickers_csv)
@@ -134,15 +125,76 @@ if tickers_csv is not None:
     tickers = tickers_df["Ticker"].astype(str).tolist()
 
 # print(tickers_df.columns)
+dummy_data = [
+    {
+        "Ticker": "AAA",
+        "Price": 25.02,
+        "Price Change (%)": 0.00,
+        "Average Volume": 5100,
+        "Volume": 10200,
+        "Relative Volume (%)": 35.31
+    },
+    {
+        "Ticker": "AAPL",
+        "Price": 198.41,
+        "Price Change (%)": -5.84,
+        "Average Volume": 48647825,
+        "Volume": 214660054,
+        "Relative Volume (%)": 441.25
+    },
+    {
+        "Ticker": "MSFT",
+        "Price": 433.29,
+        "Price Change (%)": -0.55,
+        "Average Volume": 18505200,
+        "Volume": 102405867,
+        "Relative Volume (%)": 553.39
+    },
+    {
+        "Ticker": "GOOGL",
+        "Price": 163.25,
+        "Price Change (%)": 1.45,
+        "Average Volume": 56328550,
+        "Volume": 73610601,
+        "Relative Volume (%)": 130.68
+    }
+]
+
 if st.button("Run Screener"):
     df = run_screener(
         tickers=tickers,
         interval=interval,
         start=start,
         end=end,
+        num_days=num_days
     )
     if df.empty:
         st.write("No stocks passed the screener.")
     else:
+        def color_change(val):
+            if isinstance(val, (int, float)):
+                if val > 0:
+                    color = 'green'
+                elif val < 0:
+                    color = 'red'
+                else:
+                    color = 'grey'
+            else:
+                color = 'grey'
+            return f'color: {color}'
+        
+        def fmt_pct(x):
+            return f"{x:.2f}%"
+        
+        def fmt_mill(x):
+            return mf(x, precision=2)
+        
+        styled_df = (df.style.format({
+            "Price Change (%)": fmt_pct,
+            "Average Volume": fmt_mill,
+            "Volume": fmt_mill,
+            "Relative Volume (%)": fmt_pct
+        }).map(color_change, subset=["Price Change (%)", "Relative Volume (%)"]))
+
         st.subheader("Screener Results")
-        st.dataframe(df)
+        st.dataframe(styled_df, use_container_width=True)

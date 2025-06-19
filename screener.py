@@ -47,7 +47,7 @@ def stock_data(df, df_daily, df_lookback, ticker, company_name, passed, start, e
     """
     Fetch the corresponding data for the ticker in the given period.
     """
-    print(df.tail())
+    # print(df.tail())
     price_change = price_change_percentage(df)
     avg_volume = average_volume(df, df_daily)
     current_volume = volume(df)
@@ -55,16 +55,16 @@ def stock_data(df, df_daily, df_lookback, ticker, company_name, passed, start, e
     # info = yf.Ticker(ticker).info
     passed.append({
         "Ticker": ticker,
-        "Name": company_name,
+        # "Name": company_name,
         "Price": round(df["Close"].iloc[-1], 2),
         "Price Change (%)": round(price_change, 2),
-        "Average Volume": mf(int(avg_volume), precision=2),
-        "Volume": mf(int(current_volume), precision=2),
+        "Average Volume": int(avg_volume),
+        "Volume": int(current_volume),
         "Relative Volume (%)": round(rel_volume, 2)
     })
     
 
-def run_screener(tickers, interval, start, end):
+def run_screener(tickers, interval, start, end, num_days):
     """
     Run the stock screener on the given tickers.
     """
@@ -77,16 +77,26 @@ def run_screener(tickers, interval, start, end):
         batch = tickers[i:i+400]
         # Convert tickers to the format yfinance expects
         # batch = [rec["Ticker"].replace(".", "-") for rec in batch]
-
+        # if interval.endswith("m"):
+        #     df_batch = yf.download(
+        #         tickers=batch,
+        #         period=f"{min(num_days+1, 7)}d",
+        #         interval=interval,
+        #         group_by='ticker',
+        #         auto_adjust=True,
+        #         threads= True,
+        #         progress=False  # Disable progress bar for cleaner output
+        #     )
+        # else:
         df_batch = yf.download(
-            tickers=batch,
-            start=start,
-            end=end,
-            interval=interval,
-            group_by='ticker',
-            auto_adjust=True,
-            threads= True,
-            progress=False  # Disable progress bar for cleaner output
+        tickers=batch,
+        start=start,
+        end=end,
+        interval=interval,
+        group_by="ticker",
+        auto_adjust=True,
+        threads=True,
+        progress=False,
         )
 
         df_daily = yf.download(
