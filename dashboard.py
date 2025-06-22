@@ -8,6 +8,7 @@ from millify import millify as mf
 # date limits
 st.title("Stock Screener Prototype")
 today = date.today()
+prepost = False
 
 with st.sidebar:
     start_date = st.date_input(
@@ -103,9 +104,16 @@ if start_date == end_date and end_time < start_time:
     st.error("End Time cannot be earlier than Start Time on the same day")
     st.stop()
 
+# if end_hour > 15 and end_minute >= 0:
+#     prepost = True
+
+# # overwrite the above
+# end_time = time(end_hour, end_minute + 1)
+
 # Convert start and end dates to datetime
-start = pd.to_datetime(f"{start_date} {start_time}", utc=True)
-end = pd.to_datetime(f"{end_date} {end_time}", utc=True)
+start = pd.to_datetime(f"{start_date} {start_time}")
+end = pd.to_datetime(f"{end_date} {end_time}")
+print(start, end)
 
 num_days = (end - start).days
 
@@ -159,14 +167,15 @@ dummy_data = [
         "Relative Volume (%)": 130.68
     }
 ]
-
+print("Prepost: ", prepost)
 if st.button("Run Screener"):
     df = run_screener(
         tickers=tickers,
         interval=interval,
         start=start,
         end=end,
-        num_days=num_days
+        num_days=num_days,
+        prepost=prepost
     )
     if df.empty:
         st.write("No stocks passed the screener.")
@@ -190,6 +199,7 @@ if st.button("Run Screener"):
             return mf(x, precision=2)
         
         styled_df = (df.style.format({
+            "Price": "{:,.2f}",
             "Price Change (%)": fmt_pct,
             "Average Volume": fmt_mill,
             "Volume": fmt_mill,
