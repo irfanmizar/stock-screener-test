@@ -3,20 +3,23 @@ import pandas as pd
 from millify import millify as mf
 
 def price_change_percentage(df, df_lookback):
-    """
-    Calculate the price change between the start and end of the period.
-    """
-    # window = df.loc[start:end]
     start_price = df_lookback["Close"].iloc[-1]
     end_price = df["Close"].iloc[-1]
     # print(f"Start Price: {start_price}, End Price: {end_price}")
     return ((end_price - start_price) / start_price) * 100
 
+def price_change_percentage_opentoclose(df):
+    start_price = df["Open"].iloc[0]
+    end_price = df["Close"].iloc[-1]
+    return ((end_price - start_price) / start_price) * 100
+
 def volume(df):
-    """
-    Get the current volume for the ticker.
-    """
     return df["Volume"].sum()
+
+def volume_daily(df_daily):
+    if df_daily.empty:
+        return 0
+    return df_daily["Volume"].sum()
 
 def average_volume(df, df_daily):
     """
@@ -64,7 +67,9 @@ def stock_data(df, df_daily, df_lookback, ticker, company_name, passed, start, e
         # "Name": company_name,
         "Price": round(df["Close"].iloc[-1], 2),
         "Price Change (%)": round(price_change, 2),
+        "Price Change (Open to Close) (%)": round(price_change_percentage_opentoclose(df), 2),
         "Average Volume": int(avg_volume),
+        "Daily Volume": int(volume_daily(df_daily)),
         "Volume": int(current_volume),
         "Relative Volume (%)": round(rel_volume, 2)
     })

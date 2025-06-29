@@ -104,11 +104,11 @@ if start_date == end_date and end_time < start_time:
     st.error("End Time cannot be earlier than Start Time on the same day")
     st.stop()
 
-# if end_hour > 15 and end_minute >= 0:
-#     prepost = True
+if end_hour > 15 and end_minute >= 0:
+    prepost = True
 
-# # overwrite the above
-# end_time = time(end_hour, end_minute + 1)
+# overwrite the above
+end_time = time(end_hour, end_minute + 1)
 
 # Convert start and end dates to datetime
 start = pd.to_datetime(f"{start_date} {start_time}")
@@ -201,10 +201,12 @@ if st.button("Run Screener"):
         styled_df = (df.style.format({
             "Price": "{:,.2f}",
             "Price Change (%)": fmt_pct,
+            "Price Change (Open to Close) (%)": fmt_pct,
             "Average Volume": fmt_mill,
+            "Daily Volume": fmt_mill,
             "Volume": fmt_mill,
             "Relative Volume (%)": fmt_pct
-        }).map(color_change, subset=["Price Change (%)", "Relative Volume (%)"]))
+        }).map(color_change, subset=["Price Change (%)", "Price Change (Open to Close) (%)", "Relative Volume (%)"]))
 
         st.subheader("Screener Results")
         st.dataframe(styled_df, use_container_width=True)
