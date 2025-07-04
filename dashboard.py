@@ -175,7 +175,7 @@ if st.button("Run Screener"):
         start=start,
         end=end,
         num_days=num_days,
-        prepost=prepost
+        prepost=True
     )
     if df.empty:
         st.write("No stocks passed the screener.")
@@ -200,13 +200,14 @@ if st.button("Run Screener"):
         
         styled_df = (df.style.format({
             "Price": "{:,.2f}",
-            "Price Change (%)": fmt_pct,
-            "Price Change (Open to Close) (%)": fmt_pct,
+            "PC (%)": fmt_pct,
+            "PC ": fmt_mill,
+            "PC2 (%)": fmt_pct,
+            "Total Volume": fmt_mill,
+            "Average Daily Volume": fmt_mill,
             "Average Volume": fmt_mill,
-            "Daily Volume": fmt_mill,
-            "Volume": fmt_mill,
-            "Relative Volume (%)": fmt_pct
-        }).map(color_change, subset=["Price Change (%)", "Price Change (Open to Close) (%)", "Relative Volume (%)"]))
+            "Relative Volume ": fmt_mill
+        }).map(color_change, subset=["PC (%)", "PC2 (%)", "Relative Volume ", "PC "]))
 
         st.subheader("Screener Results")
         st.dataframe(styled_df, use_container_width=True)
