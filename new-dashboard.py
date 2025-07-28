@@ -178,3 +178,10 @@ if st.button("Run Screener"):
         st.subheader("Screener Results")
         st.dataframe(styled_df, use_container_width=True)
 
+
+
+# import requests
+
+# url = "https://elite.finviz.com/quote_export.ashx?t=MSFT&p=i1&auth=4fe992d3-13f9-4814-aa5c-511cb70754e9"
+# response = requests.get(url)
+# open("export.csv", "wb").write(response.content)
