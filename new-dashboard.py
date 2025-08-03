@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from finviz-screener import run_screener
+from finviz_screener import run_screener
 from datetime import date, timedelta, time
 from millify import millify as mf
 from dotenv import load_dotenv
@@ -165,23 +165,11 @@ if st.button("Run Screener"):
             return mf(x, precision=2)
         
         styled_df = (df.style.format({
-            "Price": "{:,.2f}",
-            "PC (%)": fmt_pct,
-            "PC ": fmt_mill,
-            "PC2 (%)": fmt_pct,
+            # "Price": "{:,.2f}",
+            "Price Change (%)": fmt_pct,
             "Total Volume": fmt_mill,
-            "Average Daily Volume": fmt_mill,
             "Average Volume": fmt_mill,
-            "Relative Volume ": fmt_mill
-        }).map(color_change, subset=["PC (%)", "PC2 (%)", "PC "]))
+        }).map(color_change, subset=["Price Change (%)"]))
 
         st.subheader("Screener Results")
         st.dataframe(styled_df, use_container_width=True)
-
-
-
-# import requests
-
-# url = "https://elite.finviz.com/quote_export.ashx?t=MSFT&p=i1&auth=4fe992d3-13f9-4814-aa5c-511cb70754e9"
-# response = requests.get(url)
-# open("export.csv", "wb").write(response.content)

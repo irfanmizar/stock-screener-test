@@ -40,7 +40,7 @@ with st.sidebar:
     # Start time (hour selection)
     with col1:
         if time_disable:
-            hour_options = [OPEN_HOUR]  # default to market open if time is disabled
+            hour_options = [CLOSE_HOUR]  # default to market open if time is disabled
         else:
             hour_options = list(range(OPEN_HOUR, CLOSE_HOUR + 1))
         start_hour = st.selectbox("Start Hour", hour_options, index=0)
@@ -57,7 +57,7 @@ with st.sidebar:
         else:
             start_minute_options = list(range(0, 60, 2))
     else:
-        start_minute_options = OPEN_MINUTE
+        start_minute_options = CLOSE_MINUTE
 
     with col2:
         start_minute = st.selectbox("Start Minute", start_minute_options, index=0)
@@ -113,7 +113,7 @@ end_time = time(end_hour, end_minute)
 # Convert start and end dates to datetime
 start = pd.to_datetime(f"{start_date} {start_time}")
 end = pd.to_datetime(f"{end_date} {end_time}")
-print(start, end)
+# print(start, end)
 
 num_days = (end - start).days
 
@@ -132,42 +132,7 @@ if tickers_csv is not None:
         st.stop()
     tickers = tickers_df["Ticker"].astype(str).tolist()
 
-# print(tickers_df.columns)
-dummy_data = [
-    {
-        "Ticker": "AAA",
-        "Price": 25.02,
-        "Price Change (%)": 0.00,
-        "Average Volume": 5100,
-        "Volume": 10200,
-        "Relative Volume (%)": 35.31
-    },
-    {
-        "Ticker": "AAPL",
-        "Price": 198.41,
-        "Price Change (%)": -5.84,
-        "Average Volume": 48647825,
-        "Volume": 214660054,
-        "Relative Volume (%)": 441.25
-    },
-    {
-        "Ticker": "MSFT",
-        "Price": 433.29,
-        "Price Change (%)": -0.55,
-        "Average Volume": 18505200,
-        "Volume": 102405867,
-        "Relative Volume (%)": 553.39
-    },
-    {
-        "Ticker": "GOOGL",
-        "Price": 163.25,
-        "Price Change (%)": 1.45,
-        "Average Volume": 56328550,
-        "Volume": 73610601,
-        "Relative Volume (%)": 130.68
-    }
-]
-print("Prepost: ", prepost)
+ #print("Prepost: ", prepost)
 if st.button("Run Screener"):
     df = run_screener(
         tickers=tickers,
@@ -201,13 +166,13 @@ if st.button("Run Screener"):
         styled_df = (df.style.format({
             "Price": "{:,.2f}",
             "PC (%)": fmt_pct,
-            "PC ": fmt_mill,
-            "PC2 (%)": fmt_pct,
-            "Total Volume": fmt_mill,
-            "Average Daily Volume": fmt_mill,
-            "Average Volume": fmt_mill,
-            "Relative Volume ": fmt_mill
-        }).map(color_change, subset=["PC (%)", "PC2 (%)", "PC "]))
+            "Min Total Vol": fmt_mill,
+            "Avg Vol/Min": fmt_mill,
+            "RVol (min)": fmt_mill,
+            "Day Total Vol": fmt_mill,
+            "Avg Vol/Day": fmt_mill,
+            "RVol (day)": fmt_mill
+        }).map(color_change, subset=["PC (%)"]))
 
         st.subheader("Screener Results")
         st.dataframe(styled_df, use_container_width=True)
