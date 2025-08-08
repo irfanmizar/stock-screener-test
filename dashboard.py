@@ -4,6 +4,7 @@ import yfinance as yf
 from screener import run_screener
 from datetime import date, timedelta, time
 from millify import millify as mf
+import math
 
 # date limits
 st.title("Stock Screener Prototype")
@@ -144,35 +145,100 @@ if st.button("Run Screener"):
     )
     if df.empty:
         st.write("No stocks passed the screener.")
-    else:
-        def color_change(val):
-            if isinstance(val, (int, float)):
-                if val > 0:
-                    color = 'green'
-                elif val < 0:
-                    color = 'red'
-                else:
-                    color = 'grey'
-            else:
-                color = 'grey'
-            return f'color: {color}'
-        
-        def fmt_pct(x):
-            return f"{x:.2f}%"
-        
-        def fmt_mill(x):
-            return mf(x, precision=2)
-        
-        styled_df = (df.style.format({
-            "Price": "{:,.2f}",
-            "PC (%)": fmt_pct,
-            "Min Total Vol": fmt_mill,
-            "Avg Vol/Min": fmt_mill,
-            "RVol (min)": fmt_mill,
-            "Day Total Vol": fmt_mill,
-            "Avg Vol/Day": fmt_mill,
-            "RVol (day)": fmt_mill
-        }).map(color_change, subset=["PC (%)"]))
 
-        st.subheader("Screener Results")
-        st.dataframe(styled_df, use_container_width=True)
+    st.session_state["raw"] = df
+    st.session_state["filtered"] = df.copy()
+    st.session_state["show_results"] = True
+
+
+if st.session_state.get("show_results") and "raw" in st.session_state:
+    raw = st.session_state["raw"]
+
+    st.subheader("Screener Results")
+    if raw.empty:
+        st.write("No stocks passed the screener.")
+    else:
+        # Detect schema (daily vs intraday) and set labels
+        is_daily = "Total Volume" in raw.columns
+        vol_col  = "Total Volume"   if is_daily else "Min Total Vol"
+        avg_col  = "Average Volume" if is_daily else "Avg Vol/Min"
+        rvol_col = "Relative Volume" if is_daily else "RVol (min)"
+        rank_choices = (["PC (%)", rvol_col, avg_col, vol_col]
+                        if is_daily else ["PC (%)","RVol (day)","RVol (min)","Avg Vol/Min","Min Total Vol"])
+
+        with st.expander("Filters", expanded=True):
+            with st.form("filter_form"):
+                c1, c2, c3 = st.columns(3)
+                pc_rng  = c1.slider("PC% range", -20.0, 20.0, (-2.0, 2.0))
+                min_vol = c2.number_input(f"Min {vol_col}", value=(1_000_000 if is_daily else 500_000), step=50_000)
+                min_avg = c3.number_input(f"Min {avg_col}", value=(1_000_000 if is_daily else 2_000), step=100)
+                min_rv  = c1.number_input(f"Min {rvol_col}", value=0.8, step=0.1)
+                if not is_daily:
+                    min_rv_day = c2.number_input("Min RVol (day)", value=0.8, step=0.1)
+                metric = c3.selectbox("Rank by", rank_choices, index=0)
+                top_n  = c3.number_input("Show top N", value=50, step=10)
+                apply  = st.form_submit_button("Apply filters")
+
+        # apply filters on click, then keep them in session_state
+        f = raw.copy()
+        if apply:
+            f = f[
+                (f["PC (%)"].between(pc_rng[0], pc_rng[1])) &
+                (f[vol_col] >= min_vol) &
+                (f[avg_col] >= min_avg) &
+                (f[rvol_col] >= min_rv)
+            ]
+            if not is_daily:
+                f = f[f["RVol (day)"] >= min_rv_day]
+            f = f.sort_values(metric, ascending=False).head(top_n)
+            st.session_state["filtered"] = f
+
+        st.dataframe(st.session_state.get("filtered", raw), use_container_width=True)
+
+        colA, colB = st.columns(2)
+        with colA:
+            if st.button("Reset filters"):
+                st.session_state["filtered"] = raw.copy()
+        with colB:
+            if st.button("Clear results"):
+                for k in ("raw","filtered","show_results"):
+                    st.session_state.pop(k, None)
+                st.rerun()
+
+# st.dataframe(styled_df, use_container_width=True)
+
+
+    # else:
+    #     def color_change(val):
+    #         if isinstance(val, (int, float)):
+    #             if val > 0:
+    #                 color = 'green'
+    #             elif val < 0:
+    #                 color = 'red'
+    #             else:
+    #                 color = 'grey'
+    #         else:
+    #             color = 'grey'
+    #         return f'color: {color}'
+        
+    #     def fmt_pct(x):
+    #         return f"{x:.2f}%"
+        
+    #     def fmt_mill(x):
+    #         if x is None or (isinstance(x, float) and math.isnan(x)):
+    #             return ""
+    #         return mf(x, precision=2)
+        
+    #     styled_df = (df.style.format({
+    #         "Price": "{:,.2f}",
+    #         "PC (%)": fmt_pct,
+    #         "Min Total Vol": fmt_mill,
+    #         "Avg Vol/Min": fmt_mill,
+    #         "RVol (min)": fmt_mill,
+    #         "Day Total Vol": fmt_mill,
+    #         "Avg Vol/Day": fmt_mill,
+    #         "RVol (day)": fmt_mill,
+    #         "Total Volume": fmt_mill,
+    #         "Average Volume": fmt_mill,
+    #         "Relative Volume": fmt_mill
+    #     }).map(color_change, subset=["PC (%)"]))
