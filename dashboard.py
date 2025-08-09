@@ -193,7 +193,44 @@ if st.session_state.get("show_results") and "raw" in st.session_state:
             f = f.sort_values(metric, ascending=False).head(top_n)
             st.session_state["filtered"] = f
 
-        st.dataframe(st.session_state.get("filtered", raw), use_container_width=True)
+        # decide what we're showing
+        display_df = st.session_state.get("filtered", raw).copy()
+
+        # formatters that only attach to columns that exist (daily vs intraday)
+        formatters = {"Price": "{:,.2f}"}
+        if "PC (%)" in display_df.columns:
+            formatters["PC (%)"] = lambda x: f"{x:.2f}%"
+
+        from math import isnan  # optional; using pandas is better though
+        import pandas as pd
+
+        def _mill(x):
+            try:
+                # pd.isna handles None/NaN safely
+                return "" if pd.isna(x) else mf(x, precision=2)
+            except Exception:
+                return x
+
+        for col in [
+            "Min Total Vol","Avg Vol/Min","RVol (min)",
+            "Day Total Vol","Avg Vol/Day","RVol (day)",
+            "Total Volume","Average Volume","Relative Volume",
+        ]:
+            if col in display_df.columns:
+                formatters[col] = _mill
+
+        def color_change(val):
+            if isinstance(val, (int, float)):
+                return "color: green" if val > 0 else ("color: red" if val < 0 else "color: grey")
+            return "color: grey"
+
+        styler = display_df.style.format(formatters)
+        if "PC (%)" in display_df.columns:
+            styler = styler.map(color_change, subset=["PC (%)"])
+
+        # render the styled table
+        st.dataframe(styler, use_container_width=True)
+        # st.dataframe(st.session_state.get("filtered", raw), use_container_width=True)
 
         colA, colB = st.columns(2)
         with colA:
@@ -204,41 +241,3 @@ if st.session_state.get("show_results") and "raw" in st.session_state:
                 for k in ("raw","filtered","show_results"):
                     st.session_state.pop(k, None)
                 st.rerun()
-
-# st.dataframe(styled_df, use_container_width=True)
-
-
-    # else:
-    #     def color_change(val):
-    #         if isinstance(val, (int, float)):
-    #             if val > 0:
-    #                 color = 'green'
-    #             elif val < 0:
-    #                 color = 'red'
-    #             else:
-    #                 color = 'grey'
-    #         else:
-    #             color = 'grey'
-    #         return f'color: {color}'
-        
-    #     def fmt_pct(x):
-    #         return f"{x:.2f}%"
-        
-    #     def fmt_mill(x):
-    #         if x is None or (isinstance(x, float) and math.isnan(x)):
-    #             return ""
-    #         return mf(x, precision=2)
-        
-    #     styled_df = (df.style.format({
-    #         "Price": "{:,.2f}",
-    #         "PC (%)": fmt_pct,
-    #         "Min Total Vol": fmt_mill,
-    #         "Avg Vol/Min": fmt_mill,
-    #         "RVol (min)": fmt_mill,
-    #         "Day Total Vol": fmt_mill,
-    #         "Avg Vol/Day": fmt_mill,
-    #         "RVol (day)": fmt_mill,
-    #         "Total Volume": fmt_mill,
-    #         "Average Volume": fmt_mill,
-    #         "Relative Volume": fmt_mill
-    #     }).map(color_change, subset=["PC (%)"]))

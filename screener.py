@@ -78,15 +78,7 @@ def compute_metrics(df_slice: pd.DataFrame, df_daily_baseline: pd.DataFrame) -> 
     else:
         # compare avg daily‐bar volume to daily baseline
         rel_vol       = avg_vol / baseline_daily if baseline_daily else 0
-
-    # print(
-    #     f"[compute_metrics] is_intraday={is_intraday}\n"
-    #     f"  first_open={first_open:.2f}, last_close={last_close:.2f}, pct_change={pct_change:.2f}%\n"
-    #     f"  raw_volumes_count={len(df_slice)}, volumes_sum={df_slice['Volume'].sum()}\n"
-    #     f"  used_volumes_sum={total_vol}, avg_vol={avg_vol:.2f}\n"
-    #     f"  baseline_daily={baseline_daily:.2f}\n"
-    #     f"  rel_vol={rel_vol:.2f}"
-    # )
+        
     return {
         "pct_change": round(pct_change, 2),
         "total_vol":  total_vol,
@@ -162,19 +154,6 @@ def run_screener(tickers, interval, start, end, num_days, prepost):
                 prepost=prepost
             )
 
-            # if not df_min.empty:
-            #     print(f"[download intraday] interval={interval}  start={start}  end={end}")
-            #     print(f"  overall index range: {df_min.index.min()} → {df_min.index.max()}  (total rows: {len(df_min)})")
-            #     for sym in batch:
-            #         if sym in df_min.columns:
-            #             idx = df_min[sym].dropna().index
-            #             if len(idx):
-            #                 print(f"   • {sym}: {idx.min()} → {idx.max()}  ({len(idx)} bars)")
-            #             else:
-            #                 print(f"   • {sym}: no bars")
-            # else:
-            #     print("[download intraday] got back an EMPTY dataframe")
-
             if hasattr(df_min.index, "tz") and df_min.index.tz is not None:
                  df_min.index = df_min.index.tz_convert(None)
             # restrict to market hours
@@ -199,7 +178,7 @@ def run_screener(tickers, interval, start, end, num_days, prepost):
 
             
             if start.time() != time(16, 0):
-                df_day = df_day[df_day.index.date > start.date()]
+                df_day = df_day[df_day.index.date >= start.date()]
             if end.time() != time(16,0):
                 df_day = df_day[df_day.index.date < end.date()]
 
@@ -243,15 +222,12 @@ def run_screener(tickers, interval, start, end, num_days, prepost):
                 )
                 
                 # relative vol calculations
-                # print(baseline_daily_avg)
                 bars_per_day = 390.0 / (2.0 if interval == "2m" else 1.0)
                 rvol_min = avg_min / (baseline_daily_avg/bars_per_day) if baseline_daily_avg else 0
                 rvol_day = avg_day / baseline_daily_avg        if baseline_daily_avg else 0
                 # print("RVOL: ", rvol_day)
                 
                 # price change over the full window
-                # you could pull last Close / first Open from either df_min or df_day
-                # here we’ll pick df_day if available, else df_min
                 if sym in df_day.columns:
                     first_o = df_day[sym]["Close"].iloc[0]
                     last_c  = df_day[sym]["Close"].iloc[-1]
